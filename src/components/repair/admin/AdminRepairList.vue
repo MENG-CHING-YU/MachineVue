@@ -1,12 +1,15 @@
+<!-- RepairList.vue -->
 <script setup>
 import { ref, onMounted } from 'vue';
 import RepairEditModal from './RepairEditModal.vue';
+import RepairDeleteModal from './RepairDeleteModal.vue';
 
 const repairList = ref([]);
 const loading = ref(true);
 const error = ref(null);
 
 const showEditModal = ref(false);
+const showDeleteModal = ref(false);
 const selectedRepair = ref(null);
 
 function getStatusClass(status) {
@@ -46,19 +49,23 @@ onMounted(() => {
 });
 
 function openEditModal(repair) {
-  selectedRepair.value = { ...repair }; // 複製避免直接修改
+  selectedRepair.value = { ...repair };
   showEditModal.value = true;
 }
 
-// 當編輯 Modal 完成更新後呼叫
+function openDeleteModal(repair) {
+  selectedRepair.value = { ...repair };
+  showDeleteModal.value = true;
+}
+
 async function handleUpdated() {
   showEditModal.value = false;
   await fetchRepairs();
 }
 
-// 關閉 Modal
-function handleClose() {
-  showEditModal.value = false;
+async function handleDeleted() {
+  showDeleteModal.value = false;
+  await fetchRepairs();
 }
 </script>
 
@@ -96,47 +103,107 @@ function handleClose() {
             <td class="description">{{ repair.description }}</td>
             <td>
               <button @click="openEditModal(repair)">編輯</button>
+              <button @click="openDeleteModal(repair)">刪除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 編輯 Modal，只有一個 -->
+    <!-- 編輯 Modal -->
     <RepairEditModal
       v-if="showEditModal"
       :repair="selectedRepair"
-      @close="handleClose"
+      @close="() => showEditModal.value = false"
       @updated="handleUpdated"
+    />
+
+    <!-- 刪除 Modal -->
+    <RepairDeleteModal
+      v-if="showDeleteModal"
+      :repair="selectedRepair"
+      @close="() => showDeleteModal.value = false"
+      @deleted="handleDeleted"
     />
   </div>
 </template>
 
 <style scoped>
-/* 你的樣式，和你之前的差不多 */
-.repair-list { margin-top: 20px; }
-.loading, .error, .no-data {
+.loading {
+  font-size: 1.2em;
+  color: #555;
+  padding: 20px;
   text-align: center;
-  padding: 60px 20px;
-  font-size: 18px;
-  border-radius: 8px;
-  margin: 20px 0;
 }
+
+.error {
+  color: red;
+  padding: 20px;
+  text-align: center;
+}
+
+.no-data {
+  color: #888;
+  padding: 20px;
+  text-align: center;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.repair-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.repair-table th,
+.repair-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: center;
+}
+
 .status-badge {
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
 }
-.status-pending { background: #fff3cd; color: #856404; }
-.status-in-progress { background: #cce5ff; color: #004085; }
-.status-completed { background: #d4edda; color: #155724; }
-.status-unknown { background: #f8f9fa; color: #6c757d; border: 1px dashed #dee2e6; }
+
+.status-pending {
+  background-color: #f39c12;
+}
+
+.status-in-progress {
+  background-color: #3498db;
+}
+
+.status-completed {
+  background-color: #2ecc71;
+}
+
+.status-unknown {
+  background-color: #7f8c8d;
+}
+
 .description {
-  max-width: 250px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: left;
+  max-width: 200px;
+  word-break: break-word;
+}
+
+button {
+  margin: 0 4px;
+  padding: 6px 12px;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2980b9;
 }
 </style>

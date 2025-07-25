@@ -35,8 +35,14 @@ const router = createRouter({
     // 維修列表
     {
       path: '/repair/repairuserlist',
-      name: 'repair-list',
+      name: 'repair-userlist',
       component: () => import('../views/ch/repair/RepairUserList.vue'),
+    },
+    // 管理員維修列表
+    {
+      path: '/repair/repairadminlist',
+      name: 'repair-adminlist',
+      component: () => import('../views/ch/repair/RepairAdminList.vue'),
     },
   ],
 })
