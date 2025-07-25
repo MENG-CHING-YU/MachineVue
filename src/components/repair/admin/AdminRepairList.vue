@@ -71,9 +71,16 @@ async function handleDeleted() {
 
 <template>
   <div class="repair-list">
-    <div v-if="loading" class="loading">📡 載入中...</div>
+    <!-- 載入中 -->
+    <div v-if="loading" class="loading">📡 資料載入中...</div>
+
+    <!-- 錯誤 -->
     <div v-else-if="error" class="error">❌ {{ error }}</div>
+
+    <!-- 無資料 -->
     <div v-else-if="repairList.length === 0" class="no-data">📭 無維修記錄</div>
+
+    <!-- 表格資料 -->
     <div v-else class="table-container">
       <table class="repair-table">
         <thead>
@@ -90,17 +97,17 @@ async function handleDeleted() {
         </thead>
         <tbody>
           <tr v-for="repair in repairList" :key="repair.repairId">
-            <td>#{{ repair.repairId }}</td>
+            <td><strong>#{{ repair.repairId }}</strong></td>
             <td>{{ repair.machineId }}</td>
             <td>{{ repair.machineName }}</td>
-            <td>{{ repair.reportEmployeeId }}</td>
+            <td>👤 {{ repair.reportEmployeeId }}</td>
             <td>
               <span :class="['status-badge', getStatusClass(repair.status)]">
                 {{ getStatusIcon(repair.status) }} {{ repair.status }}
               </span>
             </td>
-            <td>{{ new Date(repair.reportedAt).toLocaleString() }}</td>
-            <td class="description">{{ repair.description }}</td>
+            <td>🕒 {{ new Date(repair.reportedAt).toLocaleString() }}</td>
+            <td class="description" :title="repair.description">{{ repair.description }}</td>
             <td>
               <button @click="openEditModal(repair)">編輯</button>
               <button @click="openDeleteModal(repair)">刪除</button>
@@ -129,68 +136,116 @@ async function handleDeleted() {
 </template>
 
 <style scoped>
-.loading {
-  font-size: 1.2em;
-  color: #555;
-  padding: 20px;
+.repair-list {
+  margin-top: 20px;
+}
+
+.loading,
+.error,
+.no-data {
   text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.loading {
+  background: #e8f4fd;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
 }
 
 .error {
-  color: red;
-  padding: 20px;
-  text-align: center;
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
 .no-data {
-  color: #888;
-  padding: 20px;
-  text-align: center;
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 2px dashed #dee2e6;
 }
 
 .table-container {
   overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .repair-table {
   width: 100%;
   border-collapse: collapse;
+  background: white;
+  min-width: 800px;
 }
 
-.repair-table th,
+.repair-table th {
+  background: #34495e;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .repair-table td {
-  border: 1px solid #ccc;
-  padding: 8px 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  vertical-align: middle;
   text-align: center;
 }
 
+.repair-table td.description {
+  text-align: left;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repair-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.repair-table tr:last-child td {
+  border-bottom: none;
+}
+
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: white;
-  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+  white-space: nowrap;
+  color: inherit;
 }
 
 .status-pending {
-  background-color: #f39c12;
+  background: #fff3cd;
+  color: #856404;
 }
 
 .status-in-progress {
-  background-color: #3498db;
+  background: #cce5ff;
+  color: #004085;
 }
 
 .status-completed {
-  background-color: #2ecc71;
+  background: #d4edda;
+  color: #155724;
 }
 
 .status-unknown {
-  background-color: #7f8c8d;
-}
-
-.description {
-  text-align: left;
-  max-width: 200px;
-  word-break: break-word;
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px dashed #dee2e6;
 }
 
 button {
@@ -201,9 +256,34 @@ button {
   color: white;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 button:hover {
   background-color: #2980b9;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .repair-table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+
+  .repair-table th,
+  .repair-table td {
+    padding: 8px;
+  }
+
+  .repair-table td.description {
+    max-width: 150px;
+  }
+
+  .loading,
+  .error,
+  .no-data {
+    font-size: 16px;
+    padding: 40px 15px;
+  }
 }
 </style>
