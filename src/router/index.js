@@ -14,16 +14,29 @@ const router = createRouter({
       name: 'about',
       component: () => import('../views/AboutView.vue'),
     },
-    // 👇 新增你的機台管理路由
+    // 後端機台管理
     {
       path: '/machine/adminmachine',
       name: 'machine-admin',
       component: () => import('../views/ch/machine/MachineAdmin.vue'),
     },
+    // 前端機台管理
     {
       path: '/machine/usermachine',
       name: 'machine-user',
       component: () => import('../views/ch/machine/MachineUser.vue'),
+    },
+    // 維修表單
+    {
+      path: '/repair/repairform',
+      name: 'repair-form',
+      component: () => import('../views/ch/repair/RepairForm.vue'),
+    },
+    // 維修列表
+    {
+      path: '/repair/repairuserlist',
+      name: 'repair-list',
+      component: () => import('../views/ch/repair/RepairUserList.vue'),
     },
   ],
 })

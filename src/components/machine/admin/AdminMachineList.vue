@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import EditButton from './EditButton.vue';
-import DeleteButton from './DeleteButton.vue';
+import EditButton from './MachineEditButton.vue';
+import DeleteButton from './MachineDeleteButton.vue';
 
-let machineList = ref(null);
+const machineList = ref(null);
 
 
 // 取得狀態樣式

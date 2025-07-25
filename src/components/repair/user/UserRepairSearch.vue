@@ -1,11 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import EditButton from './MachineEditButton.vue';
-import DeleteButton from './MachineDeleteButton.vue';
 
 const emit = defineEmits(['search-complete', 'search-clear'])
 
-const statusOptions = ['運行中', '維護中', '停機中']
+const statusOptions = ['待處理', '進行中', '已完成']
 const selectedStatus = ref('')
 const searchText = ref('')
 const searching = ref(false)
@@ -15,20 +13,20 @@ const showResults = ref(false)
 // 取得狀態樣式
 function getStatusClass(status) {
     switch (status) {
-        case '運行中': return 'running';
-        case '維護中': return 'maintenance';
-        case '停機中': return 'stopped';
-        default: return 'unknown'; // 未知狀態
+        case '待處理': return 'status-pending';
+        case '進行中': return 'status-in-progress';
+        case '已完成': return 'status-completed';
+        default: return 'status-unknown';
     }
 }
 
 // 取得狀態圖示
 function getStatusIcon(status) {
     switch (status) {
-        case '運行中': return '🟢';
-        case '維護中': return '🟡';
-        case '停機中': return '🔴';
-        default: return '❓'; // 未知狀態
+        case '待處理': return '⏳';
+        case '進行中': return '🔧';
+        case '已完成': return '✅';
+        default: return '❓';
     }
 }
 
@@ -44,7 +42,7 @@ async function handleSearch() {
   
   try {
     searching.value = true
-    const res = await fetch(`/api/machine/search?${params.toString()}`)
+    const res = await fetch(`/api/repair/search?${params.toString()}`)
     if (!res.ok) throw new Error('查詢失敗')
     const data = await res.json()
     searchResults.value = data
@@ -74,12 +72,12 @@ function handleClear() {
 </script>
 
 <template>
-  <div class="machine-search">
+  <div class="repair-search">
     <!-- 搜尋表單：永遠顯示 -->
     <div class="search-box">
       <div class="form-row">
         <div class="form-group">
-          <label>狀態：</label>
+          <label>處理狀態：</label>
           <select v-model="selectedStatus" :disabled="searching">
             <option value="">-- 不限制 --</option>
             <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
@@ -91,7 +89,7 @@ function handleClear() {
           <input 
             type="text" 
             v-model="searchText" 
-            placeholder="機台名稱、ID、位置..." 
+            placeholder="報修編號、機台編號、報修人員..." 
             :disabled="searching"
             @keyup.enter="handleSearch"
           />
@@ -121,39 +119,35 @@ function handleClear() {
       
       <!-- 沒有結果 -->
       <div v-if="searchResults.length === 0" class="no-results">
-        📭 沒有符合的機台
+        📭 沒有符合的維修記錄
       </div>
       
       <!-- 搜尋結果表格 -->
       <table v-else class="results-table">
         <thead>
           <tr>
-            <th>機台ID</th>
+            <th>報修編號</th>
+            <th>機台編號</th>
             <th>機台名稱</th>
-            <th>出廠編號</th>
-            <th>運行狀態</th>
-            <th>機台位置</th>
-            <th>管理操作</th>
+            <th>報修人員</th>
+            <th>處理狀態</th>
+            <th>報修時間</th>
+            <th>問題描述</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="machine in searchResults" :key="machine.machineId">
-            <td><strong>#{{ machine.machineId }}</strong></td>
-            <td>{{ machine.machineName }}</td>
-            <td><code>{{ machine.serialNumber }}</code></td>
+          <tr v-for="repair in searchResults" :key="repair.repairId">
+            <td><strong>#{{ repair.repairId }}</strong></td>
+            <td>{{ repair.machineId }}</td>
+            <td>{{ repair.machineName }}</td>
+            <td>👤 {{ repair.reportedBy }}</td>
             <td>
-              <span :class="['status', getStatusClass(machine.mstatus)]">
-                {{ getStatusIcon(machine.mstatus) }} {{ machine.mstatus }}
+              <span class="status-badge" :class="getStatusClass(repair.status)">
+                {{ getStatusIcon(repair.status) }} {{ repair.status }}
               </span>
             </td>
-            <td>📍 {{ machine.machineLocation }}</td>
-            <td class="action-links">
-              <EditButton :machine="machine" />
-              <DeleteButton 
-                :machine-id="machine.machineId" 
-                :machine-name="machine.machineName" 
-              />
-            </td>
+            <td>🕒 {{ new Date(repair.reportedAt).toLocaleString() }}</td>
+            <td class="description">{{ repair.description }}</td>
           </tr>
         </tbody>
       </table>
@@ -162,7 +156,7 @@ function handleClear() {
 </template>
 
 <style scoped>
-.machine-search {
+.repair-search {
   margin-bottom: 20px;
 }
 
@@ -190,7 +184,7 @@ function handleClear() {
 .form-group label {
   font-weight: bold;
   color: #2c3e50;
-  min-width: 60px;
+  min-width: 80px;
 }
 
 input, select {
@@ -207,7 +201,7 @@ select {
 }
 
 input {
-  min-width: 200px;
+  min-width: 250px;
   background-color: white;
 }
 
@@ -327,7 +321,7 @@ button:disabled {
   background-color: #f8f9fa;
 }
 
-.status {
+.status-badge {
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -335,38 +329,32 @@ button:disabled {
   display: inline-block;
 }
 
-.status.running {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status.maintenance {
+.status-pending {
   background: #fff3cd;
   color: #856404;
 }
 
-.status.stopped {
-  background: #f8d7da;
-  color: #721c24;
+.status-in-progress {
+  background: #cce5ff;
+  color: #004085;
 }
 
-.status.unknown {
+.status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-unknown {
   background: #f8f9fa;
   color: #6c757d;
   border: 1px dashed #dee2e6;
 }
 
-.action-links {
+.description {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-code {
-  background: #f1f2f6;
-  padding: 3px 6px;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  color: #2c3e50;
-  font-size: 13px;
 }
 
 @keyframes fadeIn {
@@ -403,6 +391,19 @@ code {
   
   .button-group {
     justify-content: center;
+  }
+  
+  .results-table {
+    font-size: 12px;
+  }
+  
+  .results-table th,
+  .results-table td {
+    padding: 8px;
+  }
+  
+  .description {
+    max-width: 100px;
   }
 }
 </style>
