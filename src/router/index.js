@@ -44,6 +44,16 @@ const router = createRouter({
       name: 'repair-adminlist',
       component: () => import('../views/ch/repair/RepairAdminList.vue'),
     },
+    {
+      path: '/maintenance/adminmaintenanceform',
+      name: 'maintance-adminmaintenanceform',
+      component: () => import('../views/ch/maintenance/MaintenanceForm.vue'),
+    },
+    {
+      path: '/maintenance/maintenanceuserlist',
+      name: 'maintance-maintenanceuserlist',
+      component: () => import('../views/ch/maintenance/MaintenanceUserList.vue'),
+    },
   ],
 })
 
