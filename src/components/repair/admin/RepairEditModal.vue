@@ -1,64 +1,72 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import RepairEditModal from './RepairEditModal.vue';
+import { ref, onMounted } from 'vue'
+import RepairEditModal from './RepairEditModal.vue'
 
-const repairList = ref([]);
-const loading = ref(true);
-const error = ref(null);
+const repairList = ref([])
+const loading = ref(true)
+const error = ref(null)
 
-const showEditModal = ref(false);
-const selectedRepair = ref(null);
+const showEditModal = ref(false)
+const selectedRepair = ref(null)
 
 function getStatusClass(status) {
   switch (status) {
-    case '待處理': return 'status-pending';
-    case '進行中': return 'status-in-progress';
-    case '已完成': return 'status-completed';
-    default: return 'status-unknown';
+    case '待處理':
+      return 'status-pending'
+    case '進行中':
+      return 'status-in-progress'
+    case '已完成':
+      return 'status-completed'
+    default:
+      return 'status-unknown'
   }
 }
 
 function getStatusIcon(status) {
   switch (status) {
-    case '待處理': return '⏳';
-    case '進行中': return '🔧';
-    case '已完成': return '✅';
-    default: return '❓';
+    case '待處理':
+      return '⏳'
+    case '進行中':
+      return '🔧'
+    case '已完成':
+      return '✅'
+    default:
+      return '❓'
   }
 }
 
 async function fetchRepairs() {
-  loading.value = true;
-  error.value = null;
+  loading.value = true
+  error.value = null
   try {
-    const res = await fetch('/api/repair/list');
-    if (!res.ok) throw new Error('載入失敗');
-    repairList.value = await res.json();
+    const res = await fetch('/api/repair/list')
+    if (!res.ok) throw new Error('載入失敗')
+    repairList.value = await res.json()
   } catch (e) {
-    error.value = e.message || '網路錯誤';
+    error.value = e.message || '網路錯誤'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchRepairs();
-});
+  fetchRepairs()
+})
 
 function openEditModal(repair) {
-  selectedRepair.value = { ...repair }; // 複製避免直接修改
-  showEditModal.value = true;
+  selectedRepair.value = { ...repair } // 複製避免直接修改
+  showEditModal.value = true
 }
 
 // 當編輯 Modal 完成更新後呼叫
 async function handleUpdated() {
-  showEditModal.value = false;
-  await fetchRepairs();
+  showEditModal.value = false
+  await fetchRepairs()
 }
 
 // 關閉 Modal
 function handleClose() {
-  showEditModal.value = false;
+  showEditModal.value = false
 }
 </script>
 
@@ -83,7 +91,7 @@ function handleClose() {
         </thead>
         <tbody>
           <tr v-for="repair in repairList" :key="repair.repairId">
-            <td>#{{ repair.repairId }}</td>
+            <td>{{ repair.repairId }}</td>
             <td>{{ repair.machineId }}</td>
             <td>{{ repair.machineName }}</td>
             <td>{{ repair.reportEmployeeId }}</td>
@@ -114,8 +122,12 @@ function handleClose() {
 
 <style scoped>
 /* 你的樣式，和你之前的差不多 */
-.repair-list { margin-top: 20px; }
-.loading, .error, .no-data {
+.repair-list {
+  margin-top: 20px;
+}
+.loading,
+.error,
+.no-data {
   text-align: center;
   padding: 60px 20px;
   font-size: 18px;
@@ -129,10 +141,23 @@ function handleClose() {
   font-weight: bold;
   display: inline-block;
 }
-.status-pending { background: #fff3cd; color: #856404; }
-.status-in-progress { background: #cce5ff; color: #004085; }
-.status-completed { background: #d4edda; color: #155724; }
-.status-unknown { background: #f8f9fa; color: #6c757d; border: 1px dashed #dee2e6; }
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+.status-in-progress {
+  background: #cce5ff;
+  color: #004085;
+}
+.status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+.status-unknown {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px dashed #dee2e6;
+}
 .description {
   max-width: 250px;
   overflow: hidden;

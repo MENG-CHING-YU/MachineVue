@@ -1,10 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 
-
 const emit = defineEmits(['search-complete', 'search-clear'])
 
-const statusOptions = ['運行中', '維護中', '停機中']
+const statusOptions = ['運行中', '維護中', '停機']
 const selectedStatus = ref('')
 const searchText = ref('')
 const searching = ref(false)
@@ -13,47 +12,61 @@ const showResults = ref(false)
 
 // 取得狀態樣式
 function getStatusClass(status) {
-    switch (status) {
-        case '運行中': return 'running';
-        case '維護中': return 'maintenance';
-        case '停機中': return 'stopped';
-        default: return 'unknown'; // 未知狀態
-    }
+  switch (status) {
+    case '運行中':
+      return 'running'
+    case '維護中':
+      return 'maintenance'
+    case '停機':
+      return 'stopped'
+    default:
+      return 'unknown'
+  }
 }
 
 // 取得狀態圖示
 function getStatusIcon(status) {
-    switch (status) {
-        case '運行中': return '🟢';
-        case '維護中': return '🟡';
-        case '停機中': return '🔴';
-        default: return '❓'; // 未知狀態
-    }
+  switch (status) {
+    case '運行中':
+      return '🟢'
+    case '維護中':
+      return '🟡'
+    case '停機':
+      return '🔴'
+    default:
+      return '❓'
+  }
 }
 
 async function handleSearch() {
   const params = new URLSearchParams()
-  if (selectedStatus.value) params.append('status', selectedStatus.value)
-  if (searchText.value.trim()) params.append('keyword', searchText.value.trim())
-  
+
+  // 修正：使用後端期望的參數名稱
+  if (selectedStatus.value) params.append('statusFilter', selectedStatus.value)
+  if (searchText.value.trim()) params.append('search', searchText.value.trim())
+
   if (!params.toString()) {
     alert('請至少選擇狀態或輸入關鍵字！')
     return
   }
-  
+
   try {
     searching.value = true
-    const res = await fetch(`/api/machine/search?${params.toString()}`)
+    console.log('搜尋參數:', params.toString())
+
+    const res = await fetch(`http://localhost:8080/api/machines?${params.toString()}`)
     if (!res.ok) throw new Error('查詢失敗')
     const data = await res.json()
+
+    console.log('搜尋結果:', data)
+
     searchResults.value = data
     showResults.value = true
-    
+
     // 通知父組件：搜尋完成，隱藏原本列表
     emit('search-complete')
-    
   } catch (err) {
-    console.error(err)
+    console.error('搜尋錯誤:', err)
     alert('查詢失敗，請稍後再試')
   } finally {
     searching.value = false
@@ -61,13 +74,12 @@ async function handleSearch() {
 }
 
 function handleClear() {
-  // 清空所有搜尋條件和結果
   selectedStatus.value = ''
   searchText.value = ''
   searchResults.value = []
   showResults.value = false
-  
-  // 通知父組件：清除搜尋，顯示原本列表
+
+  console.log('清除搜尋')
   emit('search-clear')
 }
 </script>
@@ -84,26 +96,24 @@ function handleClear() {
             <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label>關鍵字：</label>
-          <input 
-            type="text" 
-            v-model="searchText" 
-            placeholder="機台名稱、ID、位置..." 
+          <input
+            type="text"
+            v-model="searchText"
+            placeholder="機台名稱、ID、出廠編號..."
             :disabled="searching"
             @keyup.enter="handleSearch"
           />
         </div>
       </div>
-      
+
       <div class="button-group">
         <button @click="handleSearch" :disabled="searching">
           {{ searching ? '查詢中...' : '🔍 查詢' }}
         </button>
-        <button @click="handleClear" :disabled="searching">
-          🧹 清除
-        </button>
+        <button @click="handleClear" :disabled="searching">🧹 清除</button>
       </div>
     </div>
 
@@ -117,12 +127,10 @@ function handleClear() {
           <span v-if="searchText">關鍵字：{{ searchText }}</span>
         </p>
       </div>
-      
+
       <!-- 沒有結果 -->
-      <div v-if="searchResults.length === 0" class="no-results">
-        📭 沒有符合的機台
-      </div>
-      
+      <div v-if="searchResults.length === 0" class="no-results">📭 沒有符合的機台</div>
+
       <!-- 搜尋結果表格 -->
       <table v-else class="results-table">
         <thead>
@@ -132,21 +140,23 @@ function handleClear() {
             <th>出廠編號</th>
             <th>運行狀態</th>
             <th>機台位置</th>
-          
           </tr>
         </thead>
         <tbody>
           <tr v-for="machine in searchResults" :key="machine.machineId">
-            <td><strong>#{{ machine.machineId }}</strong></td>
+            <td>
+              <strong>#{{ machine.machineId }}</strong>
+            </td>
             <td>{{ machine.machineName }}</td>
-            <td><code>{{ machine.serialNumber }}</code></td>
+            <td>
+              <code>{{ machine.serialNumber }}</code>
+            </td>
             <td>
               <span :class="['status', getStatusClass(machine.mstatus)]">
                 {{ getStatusIcon(machine.mstatus) }} {{ machine.mstatus }}
               </span>
             </td>
             <td>📍 {{ machine.machineLocation }}</td>
-            
           </tr>
         </tbody>
       </table>
@@ -186,7 +196,8 @@ function handleClear() {
   min-width: 60px;
 }
 
-input, select {
+input,
+select {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -204,13 +215,15 @@ input {
   background-color: white;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #3498db;
   box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
-input:disabled, select:disabled {
+input:disabled,
+select:disabled {
   background-color: #e9ecef;
   cursor: not-allowed;
   color: #6c757d;
@@ -349,10 +362,6 @@ button:disabled {
   border: 1px dashed #dee2e6;
 }
 
-.action-links {
-  white-space: nowrap;
-}
-
 code {
   background: #f1f2f6;
   padding: 3px 6px;
@@ -379,21 +388,21 @@ code {
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .form-group {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .form-group label {
     min-width: auto;
     margin-bottom: 5px;
   }
-  
+
   input {
     min-width: auto;
   }
-  
+
   .button-group {
     justify-content: center;
   }

@@ -93,7 +93,7 @@ async function handleSubmit() {
     loading.value = true;
 
     try {
-        let response = await fetch('/InsertMaintenance', {
+        let response = await fetch('http://localhost:8080/api/maintenance', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/x-www-form-urlencoded'

@@ -1,67 +1,69 @@
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
-const props = defineProps(['machine']);
+const props = defineProps(['machine'])
 
 // 控制視窗顯示
-const showModal = ref(false);
+const showModal = ref(false)
 
 // 表單資料
-const formData = ref({});
+const formData = ref({})
 
 // 載入狀態
-const loading = ref(false);
+const loading = ref(false)
 
 // 開啟編輯視窗
 function openEdit() {
-  formData.value = { ...props.machine }; // 複製機台資料
-  showModal.value = true;
+  formData.value = { ...props.machine } // 複製機台資料
+  showModal.value = true
 }
 
 // 儲存修改
 async function saveEdit() {
   if (!formData.value.machineName || !formData.value.machineLocation) {
-    alert('請填寫必填欄位！');
-    return;
+    alert('請填寫必填欄位！')
+    return
   }
-  
-  loading.value = true;
-  
+
+  loading.value = true
+
   try {
-    const response = await fetch(`/api/machine/${props.machine.machineId}`, {
+    const response = await fetch(`http://localhost:8080/api/machines/${props.machine.machineId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        machineId: formData.value.machineId, // ✅ 補上 ID
         machineName: formData.value.machineName,
+        serialNumber: formData.value.serialNumber, // ✅ 補上出廠編號
         mstatus: formData.value.mstatus,
-        machineLocation: formData.value.machineLocation
-      })
-    });
-    
+        machineLocation: formData.value.machineLocation,
+      }),
+    })
+
     if (response.ok) {
-      alert('修改成功！');
-      showModal.value = false;
-      location.reload();
+      alert('修改成功！')
+      showModal.value = false
+      location.reload()
     } else {
-      alert('修改失敗！');
+      alert('修改失敗！')
     }
   } catch (error) {
-    alert('網路錯誤！');
+    alert('網路錯誤！')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 // 關閉視窗
 function closeModal() {
-  showModal.value = false;
+  showModal.value = false
 }
 </script>
 
 <template>
   <!-- 編輯按鈕 -->
   <a @click="openEdit" class="edit">✏️ 編輯</a>
-  
+
   <!-- 編輯視窗 -->
   <div v-if="showModal" class="modal">
     <div class="modal-content">
@@ -69,43 +71,43 @@ function closeModal() {
         <h3>編輯機台 #{{ formData.machineId }}</h3>
         <button @click="closeModal" class="close-btn">✕</button>
       </div>
-      
+
       <div class="modal-body">
         <!-- 機台ID (不可修改) -->
         <div class="form-group">
           <label>機台ID：</label>
           <input :value="formData.machineId" readonly class="readonly" />
         </div>
-        
+
         <!-- 出廠編號 (不可修改) -->
         <div class="form-group">
           <label>出廠編號：</label>
           <input :value="formData.serialNumber" readonly class="readonly" />
         </div>
-        
+
         <!-- 機台名稱 (可修改) -->
         <div class="form-group">
           <label>機台名稱：*</label>
           <input v-model="formData.machineName" placeholder="請輸入機台名稱" />
         </div>
-        
+
         <!-- 運行狀態 (可修改) -->
         <div class="form-group">
           <label>運行狀態：</label>
           <select v-model="formData.mstatus">
             <option value="運行中">🟢 運行中</option>
             <option value="維護中">🟡 維護中</option>
-            <option value="停機中">🔴 停機中</option>
+            <option value="停機">🔴 停機</option>
           </select>
         </div>
-        
+
         <!-- 機台位置 (可修改) -->
         <div class="form-group">
           <label>機台位置：*</label>
           <input v-model="formData.machineLocation" placeholder="請輸入機台位置" />
         </div>
       </div>
-      
+
       <!-- 按鈕 -->
       <div class="modal-footer">
         <button @click="closeModal" :disabled="loading">取消</button>

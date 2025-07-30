@@ -1,71 +1,79 @@
 <!-- RepairList.vue -->
 <script setup>
-import { ref, onMounted } from 'vue';
-import RepairEditModal from './RepairEditModal.vue';
-import RepairDeleteModal from './RepairDeleteModal.vue';
+import { ref, onMounted } from 'vue'
+import RepairEditModal from './RepairEditModal.vue'
+import RepairDeleteModal from './RepairDeleteModal.vue'
 
-const repairList = ref([]);
-const loading = ref(true);
-const error = ref(null);
+const repairList = ref([])
+const loading = ref(true)
+const error = ref(null)
 
-const showEditModal = ref(false);
-const showDeleteModal = ref(false);
-const selectedRepair = ref(null);
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedRepair = ref(null)
 
 function getStatusClass(status) {
   switch (status) {
-    case '待處理': return 'status-pending';
-    case '進行中': return 'status-in-progress';
-    case '已完成': return 'status-completed';
-    default: return 'status-unknown';
+    case '待處理':
+      return 'status-pending'
+    case '進行中':
+      return 'status-in-progress'
+    case '已完成':
+      return 'status-completed'
+    default:
+      return 'status-unknown'
   }
 }
 
 function getStatusIcon(status) {
   switch (status) {
-    case '待處理': return '⏳';
-    case '進行中': return '🔧';
-    case '已完成': return '✅';
-    default: return '❓';
+    case '待處理':
+      return '⏳'
+    case '進行中':
+      return '🔧'
+    case '已完成':
+      return '✅'
+    default:
+      return '❓'
   }
 }
 
 async function fetchRepairs() {
-  loading.value = true;
-  error.value = null;
+  loading.value = true
+  error.value = null
   try {
-    const res = await fetch('/api/repair/list');
-    if (!res.ok) throw new Error('載入失敗');
-    repairList.value = await res.json();
+    const res = await fetch('http://localhost:8080/api/repair')
+    if (!res.ok) throw new Error('載入失敗')
+    repairList.value = await res.json()
   } catch (e) {
-    error.value = e.message || '網路錯誤';
+    error.value = e.message || '網路錯誤'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchRepairs();
-});
+  fetchRepairs()
+})
 
 function openEditModal(repair) {
-  selectedRepair.value = { ...repair };
-  showEditModal.value = true;
+  selectedRepair.value = { ...repair }
+  showEditModal.value = true
 }
 
 function openDeleteModal(repair) {
-  selectedRepair.value = { ...repair };
-  showDeleteModal.value = true;
+  selectedRepair.value = { ...repair }
+  showDeleteModal.value = true
 }
 
 async function handleUpdated() {
-  showEditModal.value = false;
-  await fetchRepairs();
+  showEditModal.value = false
+  await fetchRepairs()
 }
 
 async function handleDeleted() {
-  showDeleteModal.value = false;
-  await fetchRepairs();
+  showDeleteModal.value = false
+  await fetchRepairs()
 }
 </script>
 
@@ -97,7 +105,9 @@ async function handleDeleted() {
         </thead>
         <tbody>
           <tr v-for="repair in repairList" :key="repair.repairId">
-            <td><strong>#{{ repair.repairId }}</strong></td>
+            <td>
+              <strong>#{{ repair.repairId }}</strong>
+            </td>
             <td>{{ repair.machineId }}</td>
             <td>{{ repair.machineName }}</td>
             <td>👤 {{ repair.reportEmployeeId }}</td>
@@ -121,7 +131,7 @@ async function handleDeleted() {
     <RepairEditModal
       v-if="showEditModal"
       :repair="selectedRepair"
-      @close="() => showEditModal.value = false"
+      @close="() => (showEditModal.value = false)"
       @updated="handleUpdated"
     />
 
@@ -129,7 +139,7 @@ async function handleDeleted() {
     <RepairDeleteModal
       v-if="showDeleteModal"
       :repair="selectedRepair"
-      @close="() => showDeleteModal.value = false"
+      @close="() => (showDeleteModal.value = false)"
       @deleted="handleDeleted"
     />
   </div>

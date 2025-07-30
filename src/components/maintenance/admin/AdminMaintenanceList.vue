@@ -41,7 +41,7 @@ async function fetchMaintenance() {
   try {
     loading.value = true
     error.value = null
-    const response = await fetch('/api/repair/list')
+    const response = await fetch('http://localhost:8080/api/maintenance')
     if (!response.ok) throw new Error('Network response was not ok')
     maintenanceList.value = await response.json()
   } catch (err) {
@@ -104,7 +104,9 @@ async function handleDeleted() {
         </thead>
         <tbody>
           <tr v-for="maintenance in maintenanceList" :key="maintenance.maintenanceId">
-            <td><strong>#{{ maintenance.maintenanceId }}</strong></td>
+            <td>
+              <strong>#{{ maintenance.maintenanceId }}</strong>
+            </td>
             <td>{{ maintenance.machineId }}</td>
             <td>👤 {{ maintenance.employeeId }}</td>
             <td class="description">{{ maintenance.description }}</td>

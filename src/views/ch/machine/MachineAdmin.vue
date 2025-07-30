@@ -1,34 +1,38 @@
 <script setup>
-import { ref } from 'vue';
-import AdminMachineList from '@/components/machine/admin/AdminMachineList.vue';
-import AdminMachineSearch from '@/components/machine/admin/AdminMachineSearch.vue';
+import { ref } from 'vue'
+import AdminMachineList from '@/components/machine/admin/AdminMachineList.vue'
+import AdminMachineSearch from '@/components/machine/admin/AdminMachineSearch.vue'
 
-// 控制顯示狀態：true=顯示原本列表，false=顯示搜尋結果
-const showOriginalList = ref(true);
+const showOriginalList = ref(true)
 
-// 當搜尋完成時
+// 搜尋完成時改為 false，隱藏原始列表，顯示搜尋結果
 function handleSearchComplete() {
-  showOriginalList.value = false;  // 隱藏原本列表
+  showOriginalList.value = false
 }
 
-// 當清除搜尋時
+// 清除搜尋時改為 true，顯示原始列表，隱藏搜尋結果
 function handleSearchClear() {
-  showOriginalList.value = true;   // 顯示原本列表
+  showOriginalList.value = true
 }
 </script>
 
 <template>
   <div class="machine-admin">
     <h1>機台管理系統</h1>
-    
-    <!-- 搜尋組件：永遠顯示 -->
-    <AdminMachineSearch 
-      @search-complete="handleSearchComplete"
-      @search-clear="handleSearchClear"
-    />
-    
-    <!-- 原本的機台列表：只有在沒有搜尋時才顯示 -->
+
+    <!-- 搜尋組件永遠顯示 -->
+    <AdminMachineSearch @search-complete="handleSearchComplete" @search-clear="handleSearchClear" />
+
+    <!-- 原本列表，搜尋時隱藏 -->
     <AdminMachineList v-if="showOriginalList" />
+
+    <!-- 搜尋結果區塊，搜尋時顯示 -->
+    <div v-else class="search-results-container">
+      <!-- 這裡你可以放一些提示文字或樣式 -->
+      <p style="text-align: center; margin-top: 30px; font-weight: bold">
+        查詢完成，請查看搜尋結果（查詢結果顯示在 AdminMachineSearch 裡）
+      </p>
+    </div>
   </div>
 </template>
 

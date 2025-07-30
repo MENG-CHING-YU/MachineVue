@@ -1,30 +1,30 @@
 <script setup>
-const props = defineProps(['machineId', 'machineName']);
+const props = defineProps(['machineId', 'machineName'])
 
 async function handleDelete() {
   // 顯示確認對話框
-  const confirmDelete = confirm(`確認要刪除 #${props.machineId} 嗎？`);
-  
+  const confirmDelete = confirm(`確認要刪除 #${props.machineId} 嗎？`)
+
   if (confirmDelete === false) {
-    alert('刪除失敗');
-    return;
+    alert('刪除失敗')
+    return
   }
-  
+
   if (confirmDelete === true) {
     try {
-      const response = await fetch(`/api/machine/${props.machineId}`, {
-        method: 'DELETE'
-      });
-      
+      const response = await fetch(`http://localhost:8080/api/machines/${props.machineId}`, {
+        method: 'DELETE',
+      })
+
       if (response.ok) {
-        alert('刪除成功！');
-        location.reload();  // 重新載入頁面
+        alert('刪除成功！')
+        location.reload() // 重新載入頁面
       } else {
-        alert('刪除失敗！');
+        alert('刪除失敗！')
       }
     } catch (error) {
-      console.error('API 刪除失敗:', error);
-      alert('刪除失敗！');
+      console.error('API 刪除失敗:', error)
+      alert('刪除失敗！')
     }
   }
 }
