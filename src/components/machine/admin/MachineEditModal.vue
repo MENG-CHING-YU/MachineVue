@@ -1,24 +1,26 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { toRaw } from 'vue'
 
 const props = defineProps({
-  repair: Object,
+  machine: Object,
   statusOptions: Array,
 })
-
 const emit = defineEmits(['close', 'updated'])
-
+//初始化表單資料
 const form = ref({
-  repairId: '',
-  status: '',
-  description: '',
+  machineId: '',
+  machineName: '',
+  serialNumber: '',
+  mstatus: '',
+  machineLocation: '',
 })
-
+// 當機台資料變更時，更新表單資料
 watch(
-  () => props.repair,
+  () => props.machine,
   (newVal) => {
     if (newVal) {
+      // 拷貝一份，避免直接修改 props
       form.value = { ...toRaw(newVal) }
     }
   },
@@ -31,7 +33,7 @@ function close() {
 
 async function save() {
   try {
-    const res = await fetch(`http://localhost:8080/api/repair/${form.value.repairId}`, {
+    const res = await fetch(`http://localhost:8080/api/machines/${form.value.machineId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value),
@@ -40,7 +42,7 @@ async function save() {
     alert('更新成功')
     emit('updated')
   } catch (error) {
-    alert('❌ 更新失敗，請稍後再試')
+    alert('更新失敗，請稍後再試')
     console.error(error)
   }
 }
@@ -49,19 +51,27 @@ async function save() {
 <template>
   <div class="modal-overlay" @click.self="close">
     <div class="modal-content">
-      <h3>編輯維修單 #{{ form.repairId }}</h3>
+      <h3>編輯機台 #{{ form.machineId }}</h3>
       <form @submit.prevent="save">
         <div class="form-group">
+          <label>機台名稱</label>
+          <input v-model="form.machineName" required />
+        </div>
+        <div class="form-group">
+          <label>出廠編號</label>
+          <input v-model="form.serialNumber" required />
+        </div>
+        <div class="form-group">
           <label>狀態</label>
-          <select v-model="form.status" required>
-            <option v-for="option in props.statusOptions" :key="option" :value="option">
-              {{ option }}
+          <select v-model="form.mstatus" required>
+            <option v-for="status in statusOptions" :key="status" :value="status">
+              {{ status }}
             </option>
           </select>
         </div>
         <div class="form-group">
-          <label>描述</label>
-          <textarea v-model="form.description" rows="4" required />
+          <label>機台位置</label>
+          <input v-model="form.machineLocation" required />
         </div>
         <div class="button-group">
           <button type="submit">儲存</button>
@@ -75,7 +85,7 @@ async function save() {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  inset: 0; /* top:0; right:0; bottom:0; left:0; */
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -90,6 +100,7 @@ async function save() {
   max-width: 480px;
   width: 90%;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  position: relative;
   animation: fadeIn 0.3s ease;
 }
 
@@ -113,19 +124,16 @@ h3 {
 }
 
 input,
-select,
-textarea {
+select {
   padding: 8px 12px;
   border-radius: 4px;
   border: 1px solid #ccc;
   font-size: 14px;
   transition: border-color 0.3s ease;
-  resize: vertical;
 }
 
 input:focus,
-select:focus,
-textarea:focus {
+select:focus {
   outline: none;
   border-color: #3498db;
   box-shadow: 0 0 5px rgba(52, 152, 219, 0.4);

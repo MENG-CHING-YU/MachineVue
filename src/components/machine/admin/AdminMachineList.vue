@@ -1,37 +1,27 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import EditButton from './MachineEditButton.vue'
-import DeleteButton from './MachineDeleteButton.vue'
+import { onMounted, ref, computed } from 'vue'
+import MachineEditModal from './MachineEditModal.vue'
+import MachineDeleteModal from './MachineDeleteModal.vue'
 
 // 機台列表
 const machineList = ref(null)
-
+// 視窗開關
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+// 選中的機台
+const selectedMachine = ref(null)
+//將現有資料轉為選項格式
+const statusOptions = computed(() => Object.keys(statusIconMap))
 // 狀態樣式
-function getStatusClass(status) {
-  switch (status) {
-    case '運行中':
-      return 'running'
-    case '維護中':
-      return 'maintenance'
-    case '停機':
-      return 'stopped'
-    default:
-      return ''
-  }
+const statusClassMap = {
+  運行中: 'running',
+  維護中: 'maintenance',
+  停機: 'stopped',
 }
-
-// 狀態圖示
-function getStatusIcon(status) {
-  switch (status) {
-    case '運行中':
-      return '🟢'
-    case '維護中':
-      return '🟡'
-    case '停機':
-      return '🔴'
-    default:
-      return '❓'
-  }
+const statusIconMap = {
+  運行中: '🟢',
+  維護中: '🟡',
+  停機: '🔴',
 }
 
 // 載入資料
@@ -45,15 +35,29 @@ async function fetchMachines() {
     machineList.value = []
   }
 }
-
+// 初始化載入,開啟視窗
 onMounted(fetchMachines)
+function openEditModal(machine) {
+  selectedMachine.value = { ...machine }
+  showEditModal.value = true
+}
+function openDeleteModal(machine) {
+  selectedMachine.value = machine
+  showDeleteModal.value = true
+}
+async function handleUpdated() {
+  showEditModal.value = false
+  await fetchMachines()
+}
+async function handleDeleted() {
+  showDeleteModal.value = false
+  await fetchMachines()
+}
 </script>
 
 <template>
   <div v-if="machineList === null">📡 資料載入中...</div>
   <div v-else>
-    <!-- 新增按鈕 -->
-
     <!-- 資料表 -->
     <table>
       <thead>
@@ -79,18 +83,33 @@ onMounted(fetchMachines)
             <code>{{ machine.serialNumber }}</code>
           </td>
           <td>
-            <span :class="['status', getStatusClass(machine.mstatus)]">
-              {{ getStatusIcon(machine.mstatus) }} {{ machine.mstatus }}
+            <span :class="['status', statusClassMap[machine.mstatus] || '']">
+              {{ statusIconMap[machine.mstatus] || '❓' }} {{ machine.mstatus }}
             </span>
           </td>
           <td>📍 {{ machine.machineLocation }}</td>
           <td class="action-links">
-            <EditButton :machine="machine" />
-            <DeleteButton :machine-id="machine.machineId" :machine-name="machine.machineName" />
+            <button @click="openEditModal(machine)">✏️ 編輯</button>
+            <button @click="openDeleteModal(machine)">🗑️ 刪除</button>
           </td>
         </tr>
       </tbody>
     </table>
+    <!-- 編輯 Modal -->
+    <MachineEditModal
+      v-if="showEditModal"
+      :machine="selectedMachine"
+      :status-options="statusOptions"
+      @close="showEditModal = false"
+      @updated="handleUpdated"
+    />
+    <!-- 刪除 Modal -->
+    <MachineDeleteModal
+      v-if="showDeleteModal"
+      :machine="selectedMachine"
+      @close="showDeleteModal = false"
+      @deleted="handleDeleted"
+    />
   </div>
 </template>
 

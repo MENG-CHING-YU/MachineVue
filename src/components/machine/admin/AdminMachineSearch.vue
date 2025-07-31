@@ -1,43 +1,32 @@
 <script setup>
-import { ref } from 'vue'
-import EditButton from './MachineEditButton.vue'
-import DeleteButton from './MachineDeleteButton.vue'
+import { ref, computed } from 'vue'
+import MachineEditModal from './MachineEditModal.vue'
+import MachineDeleteModal from './MachineDeleteModal.vue'
 
 const emit = defineEmits(['search-complete', 'search-clear'])
 
-const statusOptions = ['運行中', '維護中', '停機']
+//將現有資料轉為選項格式
+const statusOptions = computed(() => Object.keys(statusIconMap))
 const selectedStatus = ref('')
 const searchText = ref('')
 const searching = ref(false)
 const searchResults = ref([])
 const showResults = ref(false)
 
-// 取得狀態樣式
-function getStatusClass(status) {
-  switch (status) {
-    case '運行中':
-      return 'running'
-    case '維護中':
-      return 'maintenance'
-    case '停機':
-      return 'stopped'
-    default:
-      return 'unknown' // 未知狀態
-  }
-}
+const selectedMachine = ref(null)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
 
-// 取得狀態圖示
-function getStatusIcon(status) {
-  switch (status) {
-    case '運行中':
-      return '🟢'
-    case '維護中':
-      return '🟡'
-    case '停機':
-      return '🔴'
-    default:
-      return '❓' // 未知狀態
-  }
+// 狀態樣式
+const statusClassMap = {
+  運行中: 'running',
+  維護中: 'maintenance',
+  停機: 'stopped',
+}
+const statusIconMap = {
+  運行中: '🟢',
+  維護中: '🟡',
+  停機: '🔴',
 }
 
 async function handleSearch() {
@@ -77,6 +66,29 @@ function handleClear() {
 
   // 通知父組件：清除搜尋，顯示原本列表
   emit('search-clear')
+}
+
+function openEditModal(machine) {
+  selectedMachine.value = { ...machine }
+  showEditModal.value = true
+}
+function openDeleteModal(machine) {
+  selectedMachine.value = machine
+  showDeleteModal.value = true
+}
+async function handleUpdated() {
+  showEditModal.value = false
+  // 重新執行搜尋以更新結果
+  if (showResults.value) {
+    await handleSearch()
+  }
+}
+async function handleDeleted() {
+  showDeleteModal.value = false
+  // 重新執行搜尋以更新結果
+  if (showResults.value) {
+    await handleSearch()
+  }
 }
 </script>
 
@@ -124,11 +136,8 @@ function handleClear() {
         </p>
       </div>
 
-      <!-- 沒有結果 -->
-      <div v-if="searchResults.length === 0" class="no-results">📭 沒有符合的機台</div>
-
-      <!-- 搜尋結果表格 -->
-      <table v-else class="results-table">
+      <!-- 資料表 -->
+      <table>
         <thead>
           <tr>
             <th>機台ID</th>
@@ -140,6 +149,9 @@ function handleClear() {
           </tr>
         </thead>
         <tbody>
+          <tr v-if="searchResults.length === 0">
+            <td colspan="6" style="text-align: center; padding: 40px">📂 沒有機台資料</td>
+          </tr>
           <tr v-for="machine in searchResults" :key="machine.machineId">
             <td>
               <strong>#{{ machine.machineId }}</strong>
@@ -149,19 +161,35 @@ function handleClear() {
               <code>{{ machine.serialNumber }}</code>
             </td>
             <td>
-              <span :class="['status', getStatusClass(machine.mstatus)]">
-                {{ getStatusIcon(machine.mstatus) }} {{ machine.mstatus }}
+              <span :class="['status', statusClassMap[machine.mstatus] || '']">
+                {{ statusIconMap[machine.mstatus] || '❓' }} {{ machine.mstatus }}
               </span>
             </td>
             <td>📍 {{ machine.machineLocation }}</td>
             <td class="action-links">
-              <EditButton :machine="machine" />
-              <DeleteButton :machine-id="machine.machineId" :machine-name="machine.machineName" />
+              <button @click="openEditModal(machine)">✏️ 編輯</button>
+              <button @click="openDeleteModal(machine)">🗑️ 刪除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- 編輯 Modal -->
+    <MachineEditModal
+      v-if="showEditModal"
+      :machine="selectedMachine"
+      :status-options="statusOptions"
+      @close="showEditModal = false"
+      @updated="handleUpdated"
+    />
+    <!-- 刪除 Modal -->
+    <MachineDeleteModal
+      v-if="showDeleteModal"
+      :machine="selectedMachine"
+      @close="showDeleteModal = false"
+      @deleted="handleDeleted"
+    />
   </div>
 </template>
 
@@ -206,6 +234,88 @@ select {
   transition: border-color 0.3s ease;
 }
 
+/* 統一表格樣式與 AdminMachineList.vue 相同 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+th {
+  background: #34495e;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+tr:hover {
+  background-color: #f8f9fa;
+}
+
+.status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.status.running {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.maintenance {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status.stopped {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.action-links {
+  white-space: nowrap;
+}
+
+code {
+  background: #f1f2f6;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  color: #2c3e50;
+  font-size: 13px;
+}
+
+button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+/* 搜尋表單特有樣式 */
 select {
   min-width: 120px;
   background-color: white;
@@ -235,37 +345,30 @@ select:disabled {
   gap: 10px;
 }
 
-button {
+.button-group button {
   padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-weight: bold;
-  font-size: 14px;
-  transition: all 0.3s ease;
 }
 
-button:first-child {
+.button-group button:first-child {
   background: #3498db;
-  color: white;
 }
 
-button:first-child:hover:not(:disabled) {
+.button-group button:first-child:hover:not(:disabled) {
   background: #2980b9;
   transform: translateY(-1px);
 }
 
-button:last-child {
+.button-group button:last-child {
   background: #95a5a6;
-  color: white;
 }
 
-button:last-child:hover:not(:disabled) {
+.button-group button:last-child:hover:not(:disabled) {
   background: #7f8c8d;
   transform: translateY(-1px);
 }
 
-button:disabled {
+.button-group button:disabled {
   background: #bdc3c7;
   cursor: not-allowed;
   transform: none;
@@ -294,86 +397,6 @@ button:disabled {
   color: #155724;
   font-size: 14px;
   font-weight: 500;
-}
-
-.no-results {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6c757d;
-  font-size: 18px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 2px dashed #dee2e6;
-}
-
-.results-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.results-table th {
-  background: #34495e;
-  color: white;
-  padding: 15px;
-  text-align: left;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.results-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-}
-
-.results-table tr:hover {
-  background-color: #f8f9fa;
-}
-
-.status {
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  display: inline-block;
-}
-
-.status.running {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status.maintenance {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status.stopped {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.status.unknown {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px dashed #dee2e6;
-}
-
-.action-links {
-  white-space: nowrap;
-}
-
-code {
-  background: #f1f2f6;
-  padding: 3px 6px;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  color: #2c3e50;
-  font-size: 13px;
 }
 
 @keyframes fadeIn {

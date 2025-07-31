@@ -29,9 +29,6 @@ function handleSearchClear() {
     <!-- 搜尋結果區塊，搜尋時顯示 -->
     <div v-else class="search-results-container">
       <!-- 這裡你可以放一些提示文字或樣式 -->
-      <p style="text-align: center; margin-top: 30px; font-weight: bold">
-        查詢完成，請查看搜尋結果（查詢結果顯示在 AdminMachineSearch 裡）
-      </p>
     </div>
   </div>
 </template>

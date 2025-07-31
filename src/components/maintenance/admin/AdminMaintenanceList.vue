@@ -2,14 +2,17 @@
 import { onMounted, ref } from 'vue'
 import MaintenanceEditModal from './MaintenanceEditModal.vue'
 import RepairDeleteModal from './RepairDeleteModal.vue'
-
+//維修列表
 const maintenanceList = ref([])
+// 載入狀態
 const loading = ref(true)
+//錯誤訊息
 const error = ref(null)
-
+// 視窗開關
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
-const selectedRepair = ref(null) // 統一命名為 repair
+// 選中的維修記錄
+const selectedRepair = ref(null) 
 
 function getStatusClass(status) {
   switch (status) {
@@ -52,10 +55,8 @@ async function fetchMaintenance() {
   }
 }
 
-onMounted(() => {
-  fetchMaintenance()
-})
-
+onMounted(fetchMaintenance)
+// 初始化載入,開啟視窗
 function openEditModal(maintenance) {
   selectedRepair.value = { ...maintenance }
   showEditModal.value = true
@@ -65,7 +66,7 @@ function openDeleteModal(maintenance) {
   selectedRepair.value = { ...maintenance }
   showDeleteModal.value = true
 }
-
+//關閉視窗,並且重新載入資料
 async function handleUpdated() {
   showEditModal.value = false
   await fetchMaintenance()

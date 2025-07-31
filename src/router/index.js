@@ -20,6 +20,12 @@ const router = createRouter({
       name: 'machine-admin',
       component: () => import('../views/ch/machine/MachineAdmin.vue'),
     },
+    // 後端機台新增
+    {
+      path: '/machine/machineform',
+      name: 'machine-form',
+      component: () => import('../views/ch/machine/MachineForm.vue'),
+    },
     // 前端機台管理
     {
       path: '/machine/usermachine',

@@ -3,39 +3,27 @@
 import { ref, onMounted } from 'vue'
 import RepairEditModal from './RepairEditModal.vue'
 import RepairDeleteModal from './RepairDeleteModal.vue'
-
+// 引入維修編輯和刪除模態框組件
 const repairList = ref([])
 const loading = ref(true)
 const error = ref(null)
-
+// 狀態選項給子元素用
+const statusOptions = ['待處理', '進行中', '已完成']
+// Modal狀態
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedRepair = ref(null)
 
-function getStatusClass(status) {
-  switch (status) {
-    case '待處理':
-      return 'status-pending'
-    case '進行中':
-      return 'status-in-progress'
-    case '已完成':
-      return 'status-completed'
-    default:
-      return 'status-unknown'
-  }
+// 狀態圖示與樣式
+const statusClassMap = {
+  待處理: 'status-pending',
+  進行中: 'status-in-progress',
+  已完成: 'status-completed',
 }
-
-function getStatusIcon(status) {
-  switch (status) {
-    case '待處理':
-      return '⏳'
-    case '進行中':
-      return '🔧'
-    case '已完成':
-      return '✅'
-    default:
-      return '❓'
-  }
+const statusIconMap = {
+  待處理: '⏳',
+  進行中: '🔧',
+  已完成: '✅',
 }
 
 async function fetchRepairs() {
@@ -112,8 +100,8 @@ async function handleDeleted() {
             <td>{{ repair.machineName }}</td>
             <td>👤 {{ repair.reportEmployeeId }}</td>
             <td>
-              <span :class="['status-badge', getStatusClass(repair.status)]">
-                {{ getStatusIcon(repair.status) }} {{ repair.status }}
+              <span :class="['status-badge', statusClassMap[repair.status] || 'status-unknown']">
+                {{ statusIconMap[repair.status] || '❓' }} {{ repair.status }}
               </span>
             </td>
             <td>🕒 {{ new Date(repair.reportedAt).toLocaleString() }}</td>
@@ -139,6 +127,7 @@ async function handleDeleted() {
     <RepairDeleteModal
       v-if="showDeleteModal"
       :repair="selectedRepair"
+      :status-options="statusOptions"
       @close="() => (showDeleteModal.value = false)"
       @deleted="handleDeleted"
     />
