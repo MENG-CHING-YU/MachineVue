@@ -5,31 +5,23 @@ const maintenanceList = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-function getStatusClass(status) {
-  switch (status) {
-    case '待處理':
-      return 'status-pending'
-    case '進行中':
-      return 'status-in-progress'
-    case '已完成':
-      return 'status-completed'
-    default:
-      return 'status-unknown'
-  }
+// 狀態對應樣式與圖示（物件對應寫法）
+const statusClassMap = {
+  '待排程': 'status-pending',
+  '已排程': 'status-scheduled',
+  '進行中': 'status-in-progress',
+  '已完成': 'status-completed',
+  '已取消': 'status-cancelled'
 }
-
-function getStatusIcon(status) {
-  switch (status) {
-    case '待處理':
-      return '⏳'
-    case '進行中':
-      return '🔧'
-    case '已完成':
-      return '✅'
-    default:
-      return '❓'
-  }
+const statusIconMap = {
+  '待排程': '🕓',
+  '已排程': '📅',
+  '進行中': '🔧',
+  '已完成': '✅',
+  '已取消': '❌'
 }
+const getStatusClass = (status) => statusClassMap[status] || 'status-unknown'
+const getStatusIcon = (status) => statusIconMap[status] || '❓'
 
 onMounted(async () => {
   try {
@@ -49,7 +41,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="repair-list">
+  <div class="maintenance-list">
     <!-- 載入中狀態 -->
     <div v-if="loading" class="loading">📡 資料載入中...</div>
 
@@ -57,11 +49,11 @@ onMounted(async () => {
     <div v-else-if="error" class="error">❌ {{ error }}</div>
 
     <!-- 無資料狀態 -->
-    <div v-else-if="maintenanceList.length === 0" class="no-data">📭 目前沒有維修記錄</div>
+    <div v-else-if="maintenanceList.length === 0" class="no-data">📭 目前沒有保養記錄</div>
 
     <!-- 資料表格 -->
     <div v-else class="table-container">
-      <table class="repair-table">
+      <table class="maintenance-table">
         <thead>
           <tr>
             <th>保養單編號</th>
@@ -74,9 +66,7 @@ onMounted(async () => {
         </thead>
         <tbody>
           <tr v-for="maintenance in maintenanceList" :key="maintenance.maintenanceId">
-            <td>
-              <strong>#{{ maintenance.maintenanceId }}</strong>
-            </td>
+            <td><strong>#{{ maintenance.maintenanceId }}</strong></td>
             <td>{{ maintenance.machineId }}</td>
             <td>👤 {{ maintenance.employeeId }}</td>
             <td class="description">{{ maintenance.description }}</td>
@@ -94,7 +84,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.repair-list {
+.maintenance-list {
   margin-top: 20px;
 }
 
@@ -132,14 +122,14 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.repair-table {
+.maintenance-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
   min-width: 800px;
 }
 
-.repair-table th {
+.maintenance-table th {
   background: #34495e;
   color: white;
   padding: 15px;
@@ -151,18 +141,18 @@ onMounted(async () => {
   z-index: 1;
 }
 
-.repair-table td {
+.maintenance-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
   font-size: 14px;
   vertical-align: middle;
 }
 
-.repair-table tr:hover {
+.maintenance-table tr:hover {
   background-color: #f8f9fa;
 }
 
-.repair-table tr:last-child td {
+.maintenance-table tr:last-child td {
   border-bottom: none;
 }
 
@@ -180,6 +170,11 @@ onMounted(async () => {
   color: #856404;
 }
 
+.status-scheduled {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
 .status-in-progress {
   background: #cce5ff;
   color: #004085;
@@ -188,6 +183,11 @@ onMounted(async () => {
 .status-completed {
   background: #d4edda;
   color: #155724;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
 }
 
 .status-unknown {
@@ -204,13 +204,13 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .repair-table {
+  .maintenance-table {
     font-size: 12px;
     min-width: 600px;
   }
 
-  .repair-table th,
-  .repair-table td {
+  .maintenance-table th,
+  .maintenance-table td {
     padding: 8px;
   }
 

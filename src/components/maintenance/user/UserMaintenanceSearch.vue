@@ -9,31 +9,28 @@ const searching = ref(false);
 const showResults = ref(false);
 const error = ref(null);
 
-// 狀態對應樣式
-function getStatusClass(status) {
-  switch (status) {
-    case '待排程': return 'status-pending';
-    case '已排程': return 'status-scheduled';
-    case '進行中': return 'status-in-progress';
-    case '已完成': return 'status-completed';
-    case '已取消': return 'status-cancelled';
-    default: return 'status-unknown';
-  }
-}
+// 狀態對應樣式與圖示
+const statusClassMap = {
+  '待排程': 'status-pending',
+  '已排程': 'status-scheduled',
+  '進行中': 'status-in-progress',
+  '已完成': 'status-completed',
+  '已取消': 'status-cancelled'
+};
 
-function getStatusIcon(status) {
-  switch (status) {
-    case '待排程': return '🕓';
-    case '已排程': return '📅';
-    case '進行中': return '🔧';
-    case '已完成': return '✅';
-    case '已取消': return '❌';
-    default: return '❓';
-  }
-}
+const statusIconMap = {
+  '待排程': '🕓',
+  '已排程': '📅',
+  '進行中': '🔧',
+  '已完成': '✅',
+  '已取消': '❌'
+};
+
+const getStatusClass = (status) => statusClassMap[status] || 'status-unknown';
+const getStatusIcon = (status) => statusIconMap[status] || '❓';
 
 // 查詢功能
-async function handleSearch() {
+const handleSearch = async () => {
   const params = new URLSearchParams();
   if (selectedStatus.value) params.append('status', selectedStatus.value);
   if (searchText.value.trim()) params.append('keyword', searchText.value.trim());
@@ -57,16 +54,16 @@ async function handleSearch() {
   } finally {
     searching.value = false;
   }
-}
+};
 
 // 清除
-function handleClear() {
+const handleClear = () => {
   selectedStatus.value = '';
   searchText.value = '';
   maintenanceList.value = [];
   showResults.value = false;
   error.value = null;
-}
+};
 </script>
 
 <template>
