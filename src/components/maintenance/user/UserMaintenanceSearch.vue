@@ -1,13 +1,14 @@
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
-const statusOptions = ['待排程', '已排程', '進行中', '已完成', '已取消'];
-const selectedStatus = ref('');
-const searchText = ref('');
-const maintenanceList = ref([]);
-const searching = ref(false);
-const showResults = ref(false);
-const error = ref(null);
+const emit = defineEmits(['search-complete', 'search-clear'])
+
+const statusOptions = ['待排程', '已排程', '進行中', '已完成', '已取消']
+const selectedStatus = ref('')
+const searchText = ref('')
+const searching = ref(false)
+const searchResults = ref([])
+const showResults = ref(false)
 
 // 狀態對應樣式與圖示
 const statusClassMap = {
@@ -16,7 +17,7 @@ const statusClassMap = {
   '進行中': 'status-in-progress',
   '已完成': 'status-completed',
   '已取消': 'status-cancelled'
-};
+}
 
 const statusIconMap = {
   '待排程': '🕓',
@@ -24,55 +25,59 @@ const statusIconMap = {
   '進行中': '🔧',
   '已完成': '✅',
   '已取消': '❌'
-};
+}
 
-const getStatusClass = (status) => statusClassMap[status] || 'status-unknown';
-const getStatusIcon = (status) => statusIconMap[status] || '❓';
+const getStatusClass = (status) => statusClassMap[status] || 'status-unknown'
+const getStatusIcon = (status) => statusIconMap[status] || '❓'
 
-// 查詢功能
-const handleSearch = async () => {
-  const params = new URLSearchParams();
-  if (selectedStatus.value) params.append('status', selectedStatus.value);
-  if (searchText.value.trim()) params.append('keyword', searchText.value.trim());
+async function handleSearch() {
+  const params = new URLSearchParams()
+  if (selectedStatus.value) params.append('status', selectedStatus.value)
+  if (searchText.value.trim()) params.append('keyword', searchText.value.trim())
 
   if (!params.toString()) {
-    alert('請至少選擇狀態或輸入關鍵字！');
-    return;
+    alert('請至少選擇狀態或輸入關鍵字！')
+    return
   }
 
   try {
-    searching.value = true;
-    error.value = null;
-    const res = await fetch(`/api/repair/search?${params.toString()}`);
-    if (!res.ok) throw new Error('查詢失敗');
-    maintenanceList.value = await res.json();
-    showResults.value = true;
-  } catch (err) {
-    console.error(err);
-    error.value = `查詢失敗：${err.message}`;
-    showResults.value = false;
-  } finally {
-    searching.value = false;
-  }
-};
+    searching.value = true
+    const res = await fetch(`/api/maintenance/search?${params.toString()}`)
+    if (!res.ok) throw new Error('查詢失敗')
+    const data = await res.json()
+    searchResults.value = data
+    showResults.value = true
 
-// 清除
-const handleClear = () => {
-  selectedStatus.value = '';
-  searchText.value = '';
-  maintenanceList.value = [];
-  showResults.value = false;
-  error.value = null;
-};
+    // 通知父組件：搜尋完成，隱藏原本列表
+    emit('search-complete')
+
+  } catch (err) {
+    console.error(err)
+    alert('查詢失敗，請稍後再試')
+  } finally {
+    searching.value = false
+  }
+}
+
+function handleClear() {
+  // 清空所有搜尋條件和結果
+  selectedStatus.value = ''
+  searchText.value = ''
+  searchResults.value = []
+  showResults.value = false
+
+  // 通知父組件：清除搜尋，顯示原本列表
+  emit('search-clear')
+}
 </script>
 
 <template>
-  <div class="repair-search">
-    <!-- 查詢表單 -->
+  <div class="maintenance-search">
+    <!-- 搜尋表單：永遠顯示 -->
     <div class="search-box">
       <div class="form-row">
         <div class="form-group">
-          <label>狀態：</label>
+          <label>保養狀態：</label>
           <select v-model="selectedStatus" :disabled="searching">
             <option value="">-- 不限制 --</option>
             <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
@@ -81,10 +86,10 @@ const handleClear = () => {
 
         <div class="form-group">
           <label>關鍵字：</label>
-          <input 
-            type="text" 
-            v-model="searchText" 
-            placeholder="保養描述、機台編號..." 
+          <input
+            type="text"
+            v-model="searchText"
+            placeholder="保養單編號、機台編號、保養人員..."
             :disabled="searching"
             @keyup.enter="handleSearch"
           />
@@ -101,15 +106,10 @@ const handleClear = () => {
       </div>
     </div>
 
-    <!-- 錯誤提示 -->
-    <div v-if="error" class="error">
-      ❌ {{ error }}
-    </div>
-
-    <!-- 查詢結果 -->
-    <div v-if="showResults" class="table-container">
+    <!-- 搜尋結果：只有搜尋後才顯示 -->
+    <div v-if="showResults" class="search-results">
       <div class="result-info">
-        <h3>🔎 查詢結果：共 {{ maintenanceList.length }} 筆</h3>
+        <h3>🔎 查詢結果：共 {{ searchResults.length }} 筆</h3>
         <p class="search-conditions">
           <span v-if="selectedStatus">狀態：{{ selectedStatus }}</span>
           <span v-if="selectedStatus && searchText"> + </span>
@@ -117,11 +117,13 @@ const handleClear = () => {
         </p>
       </div>
 
-      <div v-if="maintenanceList.length === 0" class="no-data">
-        📭 沒有符合的保養紀錄
+      <!-- 沒有結果 -->
+      <div v-if="searchResults.length === 0" class="no-results">
+        📭 沒有符合的保養記錄
       </div>
 
-      <table v-else class="repair-table">
+      <!-- 搜尋結果表格 -->
+      <table v-else class="results-table">
         <thead>
           <tr>
             <th>保養單編號</th>
@@ -133,17 +135,17 @@ const handleClear = () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="m in maintenanceList" :key="m.maintenanceId">
-            <td><strong>#{{ m.maintenanceId }}</strong></td>
-            <td>{{ m.machineId }}</td>
-            <td>👤 {{ m.employeeId }}</td>
-            <td class="description">{{ m.description }}</td>
+          <tr v-for="maintenance in searchResults" :key="maintenance.maintenanceId">
+            <td><strong>#{{ maintenance.maintenanceId }}</strong></td>
+            <td>{{ maintenance.machineId }}</td>
+            <td>👤 {{ maintenance.employeeId }}</td>
+            <td class="description">{{ maintenance.description }}</td>
             <td>
-              <span class="status-badge" :class="getStatusClass(m.status)">
-                {{ getStatusIcon(m.status) }} {{ m.status }}
+              <span class="status-badge" :class="getStatusClass(maintenance.status)">
+                {{ getStatusIcon(maintenance.status) }} {{ maintenance.status }}
               </span>
             </td>
-            <td>🕒 {{ new Date(m.reportedAt).toLocaleString() }}</td>
+            <td>🕒 {{ new Date(maintenance.reportedAt).toLocaleString() }}</td>
           </tr>
         </tbody>
       </table>
@@ -152,11 +154,10 @@ const handleClear = () => {
 </template>
 
 <style scoped>
-.repair-search {
-  margin-top: 20px;
+.maintenance-search {
+  margin-bottom: 20px;
 }
 
-/* 表單區 */
 .search-box {
   padding: 20px;
   border: 1px solid #ddd;
@@ -168,8 +169,8 @@ const handleClear = () => {
 .form-row {
   display: flex;
   gap: 20px;
-  flex-wrap: wrap;
   margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
 .form-group {
@@ -180,21 +181,38 @@ const handleClear = () => {
 
 .form-group label {
   font-weight: bold;
-  min-width: 60px;
   color: #2c3e50;
+  min-width: 80px;
 }
 
 input, select {
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+select {
+  min-width: 120px;
+  background-color: white;
+}
+
+input {
+  min-width: 250px;
+  background-color: white;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
 input:disabled, select:disabled {
   background-color: #e9ecef;
-  color: #6c757d;
   cursor: not-allowed;
+  color: #6c757d;
 }
 
 .button-group {
@@ -204,37 +222,44 @@ input:disabled, select:disabled {
 
 button {
   padding: 10px 20px;
-  font-size: 14px;
-  font-weight: bold;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 button:first-child {
-  background-color: #3498db;
+  background: #3498db;
   color: white;
 }
 
 button:first-child:hover:not(:disabled) {
-  background-color: #2980b9;
+  background: #2980b9;
+  transform: translateY(-1px);
 }
 
 button:last-child {
-  background-color: #95a5a6;
+  background: #95a5a6;
   color: white;
 }
 
 button:last-child:hover:not(:disabled) {
-  background-color: #7f8c8d;
+  background: #7f8c8d;
+  transform: translateY(-1px);
 }
 
 button:disabled {
   background: #bdc3c7;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* 結果區 */
+.search-results {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
 .result-info {
   background: #e8f4fd;
   border: 1px solid #bee5eb;
@@ -250,12 +275,13 @@ button:disabled {
 }
 
 .search-conditions {
+  margin: 0;
   color: #155724;
   font-size: 14px;
   font-weight: 500;
 }
 
-.no-data {
+.no-results {
   text-align: center;
   padding: 60px 20px;
   color: #6c757d;
@@ -265,21 +291,16 @@ button:disabled {
   border: 2px dashed #dee2e6;
 }
 
-/* 表格樣式 */
-.table-container {
-  overflow-x: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.repair-table {
+.results-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  min-width: 800px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.repair-table th {
+.results-table th {
   background: #34495e;
   color: white;
   padding: 15px;
@@ -288,14 +309,13 @@ button:disabled {
   font-size: 14px;
 }
 
-.repair-table td {
+.results-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
   font-size: 14px;
-  vertical-align: middle;
 }
 
-.repair-table tr:hover {
+.results-table tr:hover {
   background-color: #f8f9fa;
 }
 
@@ -305,10 +325,8 @@ button:disabled {
   font-size: 12px;
   font-weight: bold;
   display: inline-block;
-  white-space: nowrap;
 }
 
-/* 狀態樣式 */
 .status-pending {
   background: #fff3cd;
   color: #856404;
@@ -341,15 +359,28 @@ button:disabled {
 }
 
 .description {
-  max-width: 250px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 響應式設計 */
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
+    gap: 15px;
   }
 
   .form-group {
@@ -357,8 +388,30 @@ button:disabled {
     align-items: stretch;
   }
 
+  .form-group label {
+    min-width: auto;
+    margin-bottom: 5px;
+  }
+
+  input {
+    min-width: auto;
+  }
+
+  .button-group {
+    justify-content: center;
+  }
+
+  .results-table {
+    font-size: 12px;
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 8px;
+  }
+
   .description {
-    max-width: 150px;
+    max-width: 100px;
   }
 }
 </style>

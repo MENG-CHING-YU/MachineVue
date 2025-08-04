@@ -3,29 +3,32 @@ import { ref } from 'vue'
 import MaintenanceList from '@/components/maintenance/user/UserMaintenanceList.vue'
 import MaintenanceSearch from '@/components/maintenance/user/UserMaintenanceSearch.vue'
 
-const isSearching = ref(false)
-const searchResults = ref([])
+// 控制顯示狀態：true=顯示原本列表，false=顯示搜尋結果
+const showOriginalList = ref(true)
 
-function handleSearchComplete(results) {
-  searchResults.value = results
-  isSearching.value = true
+// 當搜尋完成時
+function handleSearchComplete() {
+  showOriginalList.value = false
 }
 
+// 當清除搜尋時
 function handleSearchClear() {
-  searchResults.value = []
-  isSearching.value = false
+  showOriginalList.value = true   // 顯示原本列表
 }
 </script>
 
 <template>
   <div class="maintenance-user">
     <h1>保養記錄查詢</h1>
+
+    <!-- 搜尋組件：永遠顯示 -->
     <MaintenanceSearch
       @search-complete="handleSearchComplete"
       @search-clear="handleSearchClear"
     />
-    <MaintenanceList v-if="isSearching" :maintenances="searchResults" />
-    <MaintenanceList v-else />
+
+    <!-- 原本的保養記錄列表：只有在沒有搜尋時才顯示 -->
+    <MaintenanceList v-if="showOriginalList" />
   </div>
 </template>
 
@@ -35,6 +38,7 @@ function handleSearchClear() {
   max-width: 1400px;
   margin: 0 auto;
 }
+
 h1 {
   color: #2c3e50;
   text-align: center;

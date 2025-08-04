@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue'
+import MaintenanceEditModal from './MaintenanceEditModal.vue'
+import MaintenanceDeleteModal from './MaintenanceDeleteModal.vue'
 
-const emit = defineEmits(['edit', 'delete'])
+const emit = defineEmits(['search-complete', 'search-clear'])
 
 const statusOptions = ['待排程', '已排程', '進行中', '已完成', '已取消']
 const selectedStatus = ref('')
@@ -9,6 +11,10 @@ const searchText = ref('')
 const searching = ref(false)
 const searchResults = ref([])
 const showResults = ref(false)
+
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedMaintenance = ref(null)
 
 // 狀態圖示與樣式
 const statusClassMap = {
@@ -25,6 +31,7 @@ const statusIconMap = {
   '已完成': '✅',
   '已取消': '❌'
 }
+
 const getStatusClass = (status) => statusClassMap[status] || 'maintenance-status-unknown'
 const getStatusIcon = (status) => statusIconMap[status] || '❓'
 
@@ -42,11 +49,14 @@ async function handleSearch() {
     searching.value = true
     const res = await fetch(`/api/maintenance/search?${params.toString()}`)
     if (!res.ok) throw new Error('查詢失敗')
-    searchResults.value = await res.json()
+    const data = await res.json()
+    searchResults.value = data
     showResults.value = true
+
+    emit('search-complete')
   } catch (err) {
+    console.error(err)
     alert('查詢失敗，請稍後再試')
-    showResults.value = false
   } finally {
     searching.value = false
   }
@@ -57,12 +67,41 @@ function handleClear() {
   searchText.value = ''
   searchResults.value = []
   showResults.value = false
+  emit('search-clear')
+}
+
+function openEditModal(maintenance) {
+  selectedMaintenance.value = { ...maintenance }
+  showEditModal.value = true
+}
+
+function openDeleteModal(maintenance) {
+  selectedMaintenance.value = { ...maintenance }
+  showDeleteModal.value = true
+}
+
+function handleUpdated() {
+  showEditModal.value = false
+  handleSearch()
+}
+
+function handleDeleted() {
+  showDeleteModal.value = false
+  handleSearch()
+}
+
+function handleCloseEdit() {
+  showEditModal.value = false
+}
+
+function handleCloseDelete() {
+  showDeleteModal.value = false
 }
 </script>
 
 <template>
   <div class="maintenance-search">
-    <!-- 搜尋表單 -->
+    <!-- 搜尋表單，永遠顯示 -->
     <div class="maintenance-search-box">
       <div class="maintenance-form-row">
         <div class="maintenance-form-group">
@@ -72,6 +111,7 @@ function handleClear() {
             <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
           </select>
         </div>
+
         <div class="maintenance-form-group">
           <label>關鍵字：</label>
           <input
@@ -83,6 +123,7 @@ function handleClear() {
           />
         </div>
       </div>
+
       <div class="maintenance-button-group">
         <button @click="handleSearch" :disabled="searching">
           {{ searching ? '查詢中...' : '🔍 查詢' }}
@@ -103,9 +144,11 @@ function handleClear() {
           <span v-if="searchText">關鍵字：{{ searchText }}</span>
         </p>
       </div>
+
       <div v-if="searchResults.length === 0" class="maintenance-no-results">
-        📭 沒有符合的保養紀錄
+        📭 沒有符合的保養記錄
       </div>
+
       <table v-else class="maintenance-results-table">
         <thead>
           <tr>
@@ -131,50 +174,290 @@ function handleClear() {
             <td>🕒 {{ new Date(maintenance.reportedAt).toLocaleString() }}</td>
             <td class="maintenance-description">{{ maintenance.description }}</td>
             <td>
-              <button @click="$emit('edit', maintenance)">編輯</button>
-              <button @click="$emit('delete', maintenance)">刪除</button>
+              <button @click="openEditModal(maintenance)">編輯</button>
+              <button @click="openDeleteModal(maintenance)">刪除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <MaintenanceEditModal
+      v-if="showEditModal"
+      :maintenance="selectedMaintenance"
+      :status-options="statusOptions"
+      @close="handleCloseEdit"
+      @updated="handleUpdated"
+    />
+
+    <MaintenanceDeleteModal
+      v-if="showDeleteModal"
+      :maintenance="selectedMaintenance"
+      @close="handleCloseDelete"
+      @deleted="handleDeleted"
+    />
   </div>
 </template>
 
 <style scoped>
-.maintenance-search { margin-top: 20px; }
-.maintenance-search-box { padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f8f9fa; margin-bottom: 20px; }
-.maintenance-form-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
-.maintenance-form-group { display: flex; align-items: center; gap: 8px; }
-.maintenance-form-group label { font-weight: bold; min-width: 60px; color: #2c3e50; }
-input, select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-input:disabled, select:disabled { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; }
-.maintenance-button-group { display: flex; gap: 10px; }
-button { padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
-button:first-child { background-color: #3498db; color: white; }
-button:first-child:hover:not(:disabled) { background-color: #2980b9; }
-button:last-child { background-color: #95a5a6; color: white; }
-button:last-child:hover:not(:disabled) { background-color: #7f8c8d; }
-button:disabled { background: #bdc3c7; cursor: not-allowed; }
-.maintenance-search-results { margin-top: 20px; }
-.maintenance-result-info { background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-.maintenance-result-info h3 { margin: 0 0 8px 0; color: #0c5460; font-size: 18px; }
-.maintenance-search-conditions { color: #155724; font-size: 14px; font-weight: 500; }
-.maintenance-no-results { text-align: center; padding: 60px 20px; color: #6c757d; font-size: 18px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6; }
-.maintenance-results-table { width: 100%; border-collapse: collapse; background: white; min-width: 800px; }
-.maintenance-results-table th { background: #34495e; color: white; padding: 15px; text-align: left; font-weight: bold; font-size: 14px; }
-.maintenance-results-table td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; vertical-align: middle; }
-.maintenance-status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap; }
-.maintenance-status-pending { background: #fff3cd; color: #856404; }
-.maintenance-status-scheduled { background: #d1e7dd; color: #0f5132; }
-.maintenance-status-in-progress { background: #cce5ff; color: #004085; }
-.maintenance-status-completed { background: #d4edda; color: #155724; }
-.maintenance-status-cancelled { background: #f8d7da; color: #721c24; }
-.maintenance-status-unknown { background: #f8f9fa; color: #6c757d; border: 1px dashed #dee2e6; }
-.maintenance-description { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.maintenance-search {
+  margin-bottom: 20px;
+}
+
+.maintenance-search-box {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #f8f9fa;
+  margin-bottom: 20px;
+}
+
+.maintenance-form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.maintenance-form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.maintenance-form-group label {
+  font-weight: bold;
+  color: #2c3e50;
+  min-width: 80px;
+}
+
+input, select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+select {
+  min-width: 120px;
+  background-color: white;
+}
+
+input {
+  min-width: 250px;
+  background-color: white;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+input:disabled, select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  color: #6c757d;
+}
+
+.maintenance-button-group {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+button:first-child {
+  background: #3498db;
+  color: white;
+}
+
+button:first-child:hover:not(:disabled) {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+button:last-child {
+  background: #95a5a6;
+  color: white;
+}
+
+button:last-child:hover:not(:disabled) {
+  background: #7f8c8d;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.maintenance-search-results {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.maintenance-result-info {
+  background: #e8f4fd;
+  border: 1px solid #bee5eb;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.maintenance-result-info h3 {
+  margin: 0 0 8px 0;
+  color: #0c5460;
+  font-size: 18px;
+}
+
+.maintenance-search-conditions {
+  margin: 0;
+  color: #155724;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.maintenance-no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  font-size: 18px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.maintenance-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.maintenance-results-table th {
+  background: #34495e;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.maintenance-results-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.maintenance-results-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.maintenance-status-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.maintenance-status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.maintenance-status-scheduled {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.maintenance-status-in-progress {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.maintenance-status-completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.maintenance-status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.maintenance-status-unknown {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px dashed #dee2e6;
+}
+
+.maintenance-description {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 響應式設計 */
 @media (max-width: 768px) {
-  .maintenance-form-row { flex-direction: column; }
-  .maintenance-form-group { flex-direction: column; align-items: stretch; }
-  .maintenance-description { max-width: 150px; }
+  .maintenance-form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .maintenance-form-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .maintenance-form-group label {
+    min-width: auto;
+    margin-bottom: 5px;
+  }
+
+  input {
+    min-width: auto;
+  }
+
+  .maintenance-button-group {
+    justify-content: center;
+  }
+
+  .maintenance-results-table {
+    font-size: 12px;
+  }
+
+  .maintenance-results-table th,
+  .maintenance-results-table td {
+    padding: 8px;
+  }
+
+  .maintenance-description {
+    max-width: 100px;
+  }
 }
 </style>
