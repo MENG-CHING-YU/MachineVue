@@ -1,14 +1,10 @@
 <script setup>
-    import { ref } from 'vue';
-    import RepairForm from '@/components/maintenance/admin/AdminMaintenanceForm.vue';
+import AdminMaintenanceForm from '@/components/maintenance/admin/AdminMaintenanceForm.vue'
 </script>
 
 <template>
-<RepairForm></RepairForm>
-
+  <AdminMaintenanceForm />
 </template>
 
 <style scoped>
-
-
 </style>

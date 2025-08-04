@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import MaintenanceList from '@/components/maintenance/user/UserMaintenanceList.vue'
-import MaintenanceSearch from '@/components/maintenance/user/UserMaintenanceSearch.vue'
+import MaintenanceList from '@/components/maintenance/admin/AdminMaintenanceList.vue'
+import MaintenanceSearch from '@/components/maintenance/admin/AdminMaintenanceSearch.vue'
 
 const isSearching = ref(false)
 const searchResults = ref([])
@@ -18,8 +18,8 @@ function handleSearchClear() {
 </script>
 
 <template>
-  <div class="maintenance-user">
-    <h1>保養記錄查詢</h1>
+  <div class="maintenance-admin">
+    <h1>保養管理系統</h1>
     <MaintenanceSearch
       @search-complete="handleSearchComplete"
       @search-clear="handleSearchClear"
@@ -30,7 +30,7 @@ function handleSearchClear() {
 </template>
 
 <style scoped>
-.maintenance-user {
+.maintenance-admin {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
