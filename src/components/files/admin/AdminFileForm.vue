@@ -35,7 +35,7 @@ async function handleSubmit() {
     const fd = new FormData()
     fd.append('machineId', form.value.machineId)
     fd.append('file', form.value.file)
-    const res = await fetch('http://localhost:8080/api/files', {
+    const res = await fetch('/api/files', {
       method: 'POST',
       body: fd
     })

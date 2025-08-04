@@ -4,11 +4,14 @@ import UserFileSearch from '@/components/files/user/UserFileSearch.vue'
 import UserFiles from '@/components/files/user/UserFiles.vue'
 
 const showOriginalList = ref(true)
+const searchResults = ref([])
 
-function handleSearchComplete() {
+function handleSearchComplete(results) {
+  searchResults.value = results
   showOriginalList.value = false
 }
 function handleSearchClear() {
+  searchResults.value = []
   showOriginalList.value = true
 }
 </script>
@@ -21,6 +24,7 @@ function handleSearchClear() {
       @search-clear="handleSearchClear"
     />
     <UserFiles v-if="showOriginalList" />
+    <UserFiles v-else :files="searchResults" />
   </div>
 </template>
 

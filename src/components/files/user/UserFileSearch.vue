@@ -25,7 +25,7 @@ async function handleSearch() {
     if (!res.ok) throw new Error('查詢失敗')
     searchResults.value = await res.json()
     showResults.value = true
-    emit('search-complete')
+    emit('search-complete', searchResults.value)
   } catch (e) {
     error.value = e.message || '查詢失敗'
     showResults.value = false

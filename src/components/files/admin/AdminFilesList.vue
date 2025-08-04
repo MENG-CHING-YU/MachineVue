@@ -1,7 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import FilesEditModal from './FilesEditModal.vue'
 import FilesDeleteModal from './FilesDeleteModal.vue'
+
+const props = defineProps({
+  files: {
+    type: Array,
+    default: null
+  }
+})
 
 const fileList = ref([])
 const loading = ref(true)
@@ -10,19 +17,25 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedFile = ref(null)
 
-// 搜尋相關
-const keyword = ref('')
-const machineId = ref('')
-const searching = ref(false)
-const searchResults = ref([])
-const isSearchMode = ref(false)
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
-// 取得檔案列表
+const displayFiles = computed(() => {
+  const arr = props.files && Array.isArray(props.files) ? props.files : fileList.value
+  return arr.map(f => ({
+    ...f,
+    formattedUploadTime: f.formattedUploadTime || formatDate(f.uploadTime)
+  }))
+})
+
 async function fetchFiles() {
   loading.value = true
   error.value = null
   try {
-    const res = await fetch('http://localhost:8080/api/files')
+    const res = await fetch('/api/files')
     if (!res.ok) throw new Error('載入失敗')
     fileList.value = await res.json()
   } catch (e) {
@@ -32,35 +45,13 @@ async function fetchFiles() {
   }
 }
 
-onMounted(fetchFiles)
+onMounted(() => {
+  if (!props.files) fetchFiles()
+})
+watch(() => props.files, (val) => {
+  if (val) loading.value = false
+})
 
-// 搜尋功能
-async function handleSearch() {
-  searching.value = true
-  try {
-    const params = new URLSearchParams()
-    if (keyword.value) params.append('keyword', keyword.value)
-    if (machineId.value) params.append('machineId', machineId.value)
-    const res = await fetch(`http://localhost:8080/api/files/search?${params}`)
-    if (!res.ok) throw new Error('搜尋失敗')
-    searchResults.value = await res.json()
-    isSearchMode.value = true
-  } catch (e) {
-    error.value = e.message || '搜尋錯誤'
-  } finally {
-    searching.value = false
-  }
-}
-
-function handleClear() {
-  keyword.value = ''
-  machineId.value = ''
-  searchResults.value = []
-  isSearchMode.value = false
-  error.value = null
-}
-
-// 編輯/刪除 Modal
 function openEditModal(file) {
   selectedFile.value = { ...file }
   showEditModal.value = true
@@ -81,30 +72,10 @@ async function handleDeleted() {
 
 <template>
   <div class="files-list">
-    <h1>🗂️ 機台檔案管理系統</h1>
-    <p>雲端檔案儲存與管理平台</p>
-
-    <!-- 訊息顯示 -->
     <div v-if="error" class="message error">❌ {{ error }}</div>
-
-    <!-- 搜尋表單 -->
-    <div class="search-area">
-      <input v-model="keyword" placeholder="搜尋關鍵字..." />
-      <input v-model="machineId" placeholder="機台ID" />
-      <button @click="handleSearch" :disabled="searching">搜尋</button>
-      <button @click="handleClear" :disabled="searching">清除</button>
-    </div>
-
-    <!-- 檔案列表 -->
-    <h3>
-      📋 檔案列表 ({{ isSearchMode ? searchResults.length : fileList.length }} 筆)
-      <span v-if="isSearchMode && keyword"> - 搜尋：「{{ keyword }}」</span>
-      <span v-if="isSearchMode && machineId"> - 機台 ID：{{ machineId }}</span>
-    </h3>
-
     <div v-if="loading" class="loading">📡 資料載入中...</div>
-    <div v-else-if="(isSearchMode ? searchResults.length : fileList.length) === 0" class="empty-message">
-      📂 沒有符合條件的檔案<br /><small>請調整搜尋條件或新增檔案</small>
+    <div v-else-if="displayFiles.length === 0" class="empty-message">
+      📂 沒有檔案
     </div>
     <div v-else class="files-table-container">
       <table class="files-table">
@@ -119,7 +90,7 @@ async function handleDeleted() {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="file in isSearchMode ? searchResults : fileList" :key="file.fileId">
+          <tr v-for="file in displayFiles" :key="file.fileId">
             <td>#{{ file.fileId }}</td>
             <td>{{ file.machineId }}</td>
             <td>{{ file.fileName }}</td>
@@ -137,20 +108,12 @@ async function handleDeleted() {
         </tbody>
       </table>
     </div>
-
-    <!-- 新增檔案按鈕 -->
-    <div class="admin-controls">
-      <button class="btn btn-success">➕ 新增檔案</button>
-    </div>
-
-    <!-- 編輯/刪除 Modal（可自行實作） -->
     <FilesEditModal
       v-if="showEditModal"
       :file="selectedFile"
       @close="() => (showEditModal.value = false)"
       @updated="handleUpdated"
     />
-
     <FilesDeleteModal
       v-if="showDeleteModal"
       :file="selectedFile"
@@ -161,13 +124,7 @@ async function handleDeleted() {
 </template>
 
 <style scoped>
-.files-list {
-  margin-top: 20px;
-}
-h1 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
+.files-list { margin-top: 20px; }
 .message.error {
   background: #f8d7da;
   color: #721c24;
@@ -175,11 +132,6 @@ h1 {
   padding: 10px;
   border-radius: 6px;
   margin-bottom: 10px;
-}
-.search-area {
-  margin-bottom: 18px;
-  display: flex;
-  gap: 10px;
 }
 .loading {
   text-align: center;
@@ -227,22 +179,6 @@ h1 {
 }
 .files-table tr:last-child td {
   border-bottom: none;
-}
-.admin-controls {
-  margin-top: 18px;
-  text-align: right;
-}
-.btn.btn-success {
-  background: #27ae60;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 4px;
-  font-size: 15px;
-  cursor: pointer;
-}
-.btn.btn-success:hover {
-  background: #219150;
 }
 button {
   margin: 0 4px;

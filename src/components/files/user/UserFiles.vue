@@ -1,14 +1,46 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+
+const props = defineProps({
+  files: {
+    type: Array,
+    default: null
+  }
+})
 
 const fileList = ref([])
 const loading = ref(true)
 const error = ref(null)
 
+// 日期格式化
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+// 若有傳入 files prop，優先顯示 prop
+const displayFiles = computed(() => {
+  if (props.files && Array.isArray(props.files)) {
+    return props.files.map(f => ({
+      ...f,
+      formattedUploadTime: f.formattedUploadTime || formatDate(f.uploadTime)
+    }))
+  }
+  return fileList.value.map(f => ({
+    ...f,
+    formattedUploadTime: f.formattedUploadTime || formatDate(f.uploadTime)
+  }))
+})
+
 onMounted(async () => {
+  if (props.files) {
+    loading.value = false
+    return
+  }
   try {
     loading.value = true
-    const res = await fetch('http://localhost:8080/api/files')
+    const res = await fetch('/api/files')
     if (!res.ok) throw new Error('載入失敗')
     fileList.value = await res.json()
   } catch (e) {
@@ -23,7 +55,7 @@ onMounted(async () => {
   <div class="files-list">
     <div v-if="loading" class="loading">📡 資料載入中...</div>
     <div v-else-if="error" class="error">❌ {{ error }}</div>
-    <div v-else-if="fileList.length === 0" class="no-data">📭 目前沒有檔案</div>
+    <div v-else-if="displayFiles.length === 0" class="no-data">📭 目前沒有檔案</div>
     <div v-else class="table-container">
       <table class="files-table">
         <thead>
@@ -36,7 +68,7 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="file in fileList" :key="file.fileId">
+          <tr v-for="file in displayFiles" :key="file.fileId">
             <td>#{{ file.fileId }}</td>
             <td>{{ file.machineId }}</td>
             <td>{{ file.fileName }}</td>
